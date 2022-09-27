@@ -2,23 +2,29 @@ import { View, Text, FlatList, StyleSheet, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import fetchPollingData from '../api/fetchData';
+import { Pagination } from '../components/Pagination';
 const smallScreenIndices = [0, 1, 5];
 const mediumScreenIndices = [0, 1, 2, 4, 5];
 
 export const Home = () => {
     const [data, setData] = useState<object[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [currentPage, setCurrentPage] = useState<number>(0);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [pageLimit, setPageLimit] = useState<number>(20);
 
     useEffect(() => {
         fetchPollingData(0)
             .then(res => {
+                setIsLoading(true);
                 return res.hits;
             })
-            .then(body => setData([...body]))
+            .then(body => {
+                // setData([...body])
+                setData(prevState=>[...prevState, ...body])
+                setIsLoading(false)
+            })
             .catch(error => console.log(error))
     }, [])
-    const tableHading = ["Title", "Url", "Created At", "Auther"]
 
     const createShortString = (str: string) => {
         if (str != undefined) {
@@ -64,6 +70,10 @@ export const Home = () => {
         )
     }
 
+    const idxOfLastData = currentPage * pageLimit
+    const idxOfFirstData = idxOfLastData - pageLimit;
+    const currentData = data.slice(idxOfFirstData, idxOfLastData)    
+
     // title, url, created_at, auther
     return (
         <View style={styles.tableContainer}>
@@ -85,14 +95,19 @@ export const Home = () => {
                 </View>
             </View>
 
-            <FlatList
-                data={data}
+            {
+                isLoading
+                ?<Text style={styles.loadingStyle}>Loading...</Text>
+                :<FlatList
+                data={currentData}
                 renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
-            />
-
-
-
+                ListFooterComponent={
+                    <Pagination 
+                    dataPerPage={pageLimit} 
+                    tableData={data.length} />
+                }
+                keyExtractor={(item, index) => index.toString()}/>
+            }
             <StatusBar style="auto" hidden />
         </View>
     )
@@ -100,7 +115,7 @@ export const Home = () => {
 const styles = StyleSheet.create({
     tableContainer: {
         flex: 1,
-        alignItems: 'center'
+        alignItems: 'center',
     },
     tableHeading: {
         flexDirection: 'row',
@@ -110,6 +125,10 @@ const styles = StyleSheet.create({
     tableContent: {
         flexDirection: 'row',
         backgroundColor: '#f3f3f3'
+    },
+    loadingStyle:{
+        marginTop: 300,
+        fontSize: 30
     },
     tableContentLink: {
         color: 'blue',
