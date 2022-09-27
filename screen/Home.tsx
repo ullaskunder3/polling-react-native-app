@@ -1,16 +1,26 @@
 import { View, Text, FlatList, StyleSheet, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import fetchPollingData from '../api/fetchData';
-import { Pagination } from '../components/Pagination';
-const smallScreenIndices = [0, 1, 5];
-const mediumScreenIndices = [0, 1, 2, 4, 5];
+import Paginations from '../components/Paginations';
 
 export const Home = () => {
     const [data, setData] = useState<object[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageLimit, setPageLimit] = useState<number>(20);
+
+    const onPageChanged = useCallback(
+        (event, page) => {
+            event.preventDefault();
+            setCurrentPage(page);
+        },
+        [setCurrentPage]
+    );
+    const currentData = data.slice(
+        (currentPage - 1) * pageLimit,
+        (currentPage - 1) * pageLimit + pageLimit
+    );
 
     useEffect(() => {
         fetchPollingData(0)
@@ -19,8 +29,7 @@ export const Home = () => {
                 return res.hits;
             })
             .then(body => {
-                // setData([...body])
-                setData(prevState=>[...prevState, ...body])
+                setData(prevState => [...prevState, ...body])
                 setIsLoading(false)
             })
             .catch(error => console.log(error))
@@ -28,10 +37,10 @@ export const Home = () => {
 
     const createShortString = (str: string) => {
         if (str != undefined) {
-            // return str.length < 40 ? str : str.substring(0, 50) + '...'
-            return str.length < 5 ? str : str.substring(0, 15) + '...'
+            return str.length < 5 ? str : str.substring(0, 20) + '...'
         }
     }
+
     const parseDateStamp = (created_at: string) => {
         const dateOptions: any = { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' };
         const myDate = new Date(created_at);
@@ -57,7 +66,7 @@ export const Home = () => {
                     <Text
                         style={styles.tableContentLink}
                         onPress={() => Linking.openURL(url)}>
-                        {urlDomain?urlDomain:'unavailable'}
+                        {urlDomain ? urlDomain : 'unavailable'}
                     </Text>
                 </View>
                 <View style={[styles.tableCol, { alignItems: 'center' }]}>
@@ -69,12 +78,28 @@ export const Home = () => {
             </View>
         )
     }
+    const RenderData = ({ data }) => {
+        return (
+            <FlatList
+                data={currentData}
+                renderItem={renderItem}
+                ListFooterComponent={
+                    <Paginations
+                    totalRecords={data.length}
+                    pageLimit={pageLimit}
+                    pageNeighbours={2}
+                    onPageChanged={onPageChanged}
+                    currentPage={currentPage}
+                />
+                }
+                keyExtractor={(item, index) => index.toString()} />
+        )
+    }
 
     const idxOfLastData = currentPage * pageLimit
     const idxOfFirstData = idxOfLastData - pageLimit;
-    const currentData = data.slice(idxOfFirstData, idxOfLastData)    
+    // const currentData = data.slice(idxOfFirstData, idxOfLastData)    
 
-    // title, url, created_at, auther
     return (
         <View style={styles.tableContainer}>
 
@@ -95,19 +120,8 @@ export const Home = () => {
                 </View>
             </View>
 
-            {
-                isLoading
-                ?<Text style={styles.loadingStyle}>Loading...</Text>
-                :<FlatList
-                data={currentData}
-                renderItem={renderItem}
-                ListFooterComponent={
-                    <Pagination 
-                    dataPerPage={pageLimit} 
-                    tableData={data.length} />
-                }
-                keyExtractor={(item, index) => index.toString()}/>
-            }
+            <RenderData data={data} />
+
             <StatusBar style="auto" hidden />
         </View>
     )
@@ -126,7 +140,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: '#f3f3f3'
     },
-    loadingStyle:{
+    loadingStyle: {
         marginTop: 300,
         fontSize: 30
     },
