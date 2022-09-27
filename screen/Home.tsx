@@ -23,7 +23,7 @@ export const Home = () => {
     );
 
     useEffect(() => {
-        fetchPollingData(0)
+        fetchPollingData(8)
             .then(res => {
                 setIsLoading(true);
                 return res.hits;
