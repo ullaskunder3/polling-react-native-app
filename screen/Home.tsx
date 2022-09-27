@@ -1,32 +1,50 @@
-import { View, Text, FlatList, StyleSheet, Linking } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import fetchPollingData from '../api/fetchData';
 import Paginations from '../components/Paginations';
 
-export const Home = () => {
+export const Home = ({ navigation }) => {
     const [data, setData] = useState<object[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const PAGELIMIT = 5
+    const PAGELIMIT = 20
+    let counter = 0 
 
     useEffect(() => {
-        fetchPollingData(0)
-            .then(res => {
-                setIsLoading(true);
-                return res.hits;
-            })
-            .then(body => {
-                setData(prevState => [...prevState, ...body])
-                setIsLoading(false)
-            })
-            .catch(error => console.log(error))
+
+        // will run once on mount
+        apiCall(counter);
+
+        // after 10 seconds 
+        const interval = setInterval(() => {
+            apiCall(counter);
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, [])
 
-    const onPageChanged = useCallback((e, page) =>{
+    const apiCall = (page: number) => {
+        
+        fetchPollingData(page)
+        .then(res => {
+            console.log("fetched with", page, counter);
+            
+            setIsLoading(true);
+            counter++;
+            return res.hits;
+        })
+        .then(body => {
+            setData(prevState => [...prevState, ...body])
+            setIsLoading(false)
+        })
+        .catch(error => console.log(error))
+    }
+
+    const onPageChanged = useCallback((e, page) => {
         e.preventDefault();
         setCurrentPage(page);
-    },[currentPage]);
+    }, [currentPage]);
 
     const currentData = data.slice(
         (currentPage - 1) * PAGELIMIT,
@@ -45,6 +63,9 @@ export const Home = () => {
 
         return myDate.toLocaleDateString('en-US', dateOptions);
     }
+    const OnRowClickHandler = (item) => {
+        navigation.navigate('Detail', { item })
+    }
 
     const renderItem = ({ item }) => {
         const { title, url, created_at, author } = item
@@ -56,7 +77,7 @@ export const Home = () => {
         const newCreatedAt = parseDateStamp(created_at);
 
         return (
-            <View style={styles.tableContent}>
+            <TouchableOpacity style={styles.tableContent} onPress={() => OnRowClickHandler(item)}>
                 <View style={[styles.tableCol, styles.tableFirstCol]}>
                     <Text>{newShortTitle}</Text>
                 </View>
@@ -73,60 +94,60 @@ export const Home = () => {
                 <View style={[styles.tableCol, styles.tableLastCol]}>
                     <Text>{newShorAuther}</Text>
                 </View>
-            </View>
+            </TouchableOpacity>
         )
     }
     const RenderData = ({ data }) => {
-        if(isLoading){
-            return(
-                <Text style={{marginTop: 300}}>Loading...</Text>
+        if (isLoading) {
+            return (
+                <Text style={{ marginTop: 300 }}>Loading...</Text>
             )
-        }else{
-            return(
+        } else {
+            return (
                 <FlatList
-                nestedScrollEnabled
-                data={currentData}
-                renderItem={renderItem}
-                ListFooterComponent={
-                    <Paginations
-                    totalRecords={data.length}
-                    pageLimit={PAGELIMIT}
-                    pageNeighbours={2}
-                    onPageChanged={onPageChanged}
-                    currentPage={currentPage}/>
-                }
-                keyExtractor={(item, index) => index.toString()} />
+                    nestedScrollEnabled
+                    data={currentData}
+                    renderItem={renderItem}
+                    ListFooterComponent={
+                        <Paginations
+                            totalRecords={data.length}
+                            pageLimit={PAGELIMIT}
+                            pageNeighbours={2}
+                            onPageChanged={onPageChanged}
+                            currentPage={currentPage} />
+                    }
+                    keyExtractor={(item, index) => index.toString()} />
             )
         }
     }
-    const TableDataLabel = ({tabelHeadings}:{tabelHeadings: {title: string, url: string, createdAt: string, author: string}})=>{
-        
-        const {title, url, createdAt, author} = tabelHeadings        
-        
-        return(
+    const TableDataLabel = ({ tabelHeadings }: { tabelHeadings: { title: string, url: string, createdAt: string, author: string } }) => {
+
+        const { title, url, createdAt, author } = tabelHeadings
+
+        return (
             <View style={styles.tableHeading}>
-            <View style={[styles.tableCol, styles.tableFirstCol]}>
-                <Text>{title}</Text>
+                <View style={[styles.tableCol, styles.tableFirstCol]}>
+                    <Text>{title}</Text>
+                </View>
+                <View style={styles.tableCol}>
+                    <Text style={styles.tableContentLink}>
+                        {url}
+                    </Text>
+                </View>
+                <View style={[styles.tableCol, { alignItems: 'center' }]}>
+                    <Text>{createdAt}</Text>
+                </View>
+                <View style={[styles.tableCol, styles.tableLastCol]}>
+                    <Text>{author}</Text>
+                </View>
             </View>
-            <View style={styles.tableCol}>
-                <Text style={styles.tableContentLink}>
-                    {url}
-                </Text>
-            </View>
-            <View style={[styles.tableCol, { alignItems: 'center' }]}>
-                <Text>{createdAt}</Text>
-            </View>
-            <View style={[styles.tableCol, styles.tableLastCol]}>
-                <Text>{author}</Text>
-            </View>
-        </View>
         )
     }
 
     return (
         <View style={styles.tableContainer}>
 
-            <TableDataLabel tabelHeadings={{title: "Title", url: "Url", createdAt: "Created At", author: "Author"}} />
+            <TableDataLabel tabelHeadings={{ title: "Title", url: "Url", createdAt: "Created At", author: "Author" }} />
             <RenderData data={data} />
 
             <StatusBar style="auto" hidden />

@@ -1,6 +1,7 @@
 import axios from "axios";
 
 async function fetchPollingData(pageNumber:number) {
+    console.log("page", pageNumber);
     
     try {
         const response = await axios.get(`https://hn.algolia.com/api/v1/search_by_date?tags=story&page=${pageNumber}`);           

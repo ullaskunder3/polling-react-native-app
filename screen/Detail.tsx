@@ -1,9 +1,12 @@
-import {View, Text} from 'react-native';
+import {View, Text } from 'react-native';
 
-export const Detail = ()=>{
+export const Detail = ({route})=>{
+    const { item } = route.params
     return(
         <View>
-            <Text>Details</Text>
+            <Text>
+                {JSON.stringify(item, null, 2)}
+            </Text>
         </View>
     )
 }
