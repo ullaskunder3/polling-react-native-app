@@ -8,22 +8,10 @@ export const Home = () => {
     const [data, setData] = useState<object[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [pageLimit, setPageLimit] = useState<number>(20);
-
-    const onPageChanged = useCallback(
-        (event, page) => {
-            event.preventDefault();
-            setCurrentPage(page);
-        },
-        [setCurrentPage]
-    );
-    const currentData = data.slice(
-        (currentPage - 1) * pageLimit,
-        (currentPage - 1) * pageLimit + pageLimit
-    );
+    const PAGELIMIT = 5
 
     useEffect(() => {
-        fetchPollingData(8)
+        fetchPollingData(0)
             .then(res => {
                 setIsLoading(true);
                 return res.hits;
@@ -34,6 +22,16 @@ export const Home = () => {
             })
             .catch(error => console.log(error))
     }, [])
+
+    const onPageChanged = useCallback((e, page) =>{
+        e.preventDefault();
+        setCurrentPage(page);
+    },[currentPage]);
+
+    const currentData = data.slice(
+        (currentPage - 1) * PAGELIMIT,
+        (currentPage - 1) * PAGELIMIT + PAGELIMIT
+    );
 
     const createShortString = (str: string) => {
         if (str != undefined) {
@@ -79,47 +77,56 @@ export const Home = () => {
         )
     }
     const RenderData = ({ data }) => {
-        return (
-            <FlatList
+        if(isLoading){
+            return(
+                <Text style={{marginTop: 300}}>Loading...</Text>
+            )
+        }else{
+            return(
+                <FlatList
+                nestedScrollEnabled
                 data={currentData}
                 renderItem={renderItem}
                 ListFooterComponent={
                     <Paginations
                     totalRecords={data.length}
-                    pageLimit={pageLimit}
+                    pageLimit={PAGELIMIT}
                     pageNeighbours={2}
                     onPageChanged={onPageChanged}
-                    currentPage={currentPage}
-                />
+                    currentPage={currentPage}/>
                 }
                 keyExtractor={(item, index) => index.toString()} />
+            )
+        }
+    }
+    const TableDataLabel = ({tabelHeadings}:{tabelHeadings: {title: string, url: string, createdAt: string, author: string}})=>{
+        
+        const {title, url, createdAt, author} = tabelHeadings        
+        
+        return(
+            <View style={styles.tableHeading}>
+            <View style={[styles.tableCol, styles.tableFirstCol]}>
+                <Text>{title}</Text>
+            </View>
+            <View style={styles.tableCol}>
+                <Text style={styles.tableContentLink}>
+                    {url}
+                </Text>
+            </View>
+            <View style={[styles.tableCol, { alignItems: 'center' }]}>
+                <Text>{createdAt}</Text>
+            </View>
+            <View style={[styles.tableCol, styles.tableLastCol]}>
+                <Text>{author}</Text>
+            </View>
+        </View>
         )
     }
-
-    const idxOfLastData = currentPage * pageLimit
-    const idxOfFirstData = idxOfLastData - pageLimit;
-    // const currentData = data.slice(idxOfFirstData, idxOfLastData)    
 
     return (
         <View style={styles.tableContainer}>
 
-            <View style={styles.tableHeading}>
-                <View style={[styles.tableCol, styles.tableFirstCol]}>
-                    <Text>Title</Text>
-                </View>
-                <View style={styles.tableCol}>
-                    <Text style={styles.tableContentLink}>
-                        Url
-                    </Text>
-                </View>
-                <View style={[styles.tableCol, { alignItems: 'center' }]}>
-                    <Text>Created At</Text>
-                </View>
-                <View style={[styles.tableCol, styles.tableLastCol]}>
-                    <Text>Author</Text>
-                </View>
-            </View>
-
+            <TableDataLabel tabelHeadings={{title: "Title", url: "Url", createdAt: "Created At", author: "Author"}} />
             <RenderData data={data} />
 
             <StatusBar style="auto" hidden />
@@ -138,7 +145,10 @@ const styles = StyleSheet.create({
     },
     tableContent: {
         flexDirection: 'row',
-        backgroundColor: '#f3f3f3'
+        paddingHorizontal: 10,
+        backgroundColor: '#f3f3f3',
+        borderBottomColor: 'black',
+        borderBottomWidth: 2,
     },
     loadingStyle: {
         marginTop: 300,
