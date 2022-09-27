@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native'
 import { useState, useEffect } from "react";
 
-const range = (from, to, step = 1) => {
+const range = (from:number, to:number, step = 1) => {
     let i = from;
     const range = [];
 
@@ -13,7 +13,12 @@ const range = (from, to, step = 1) => {
     return range;
 };
 
-export const Paginations = (props) => {
+export const Paginations = (props: 
+    { totalRecords: number,
+        pageLimit: number,
+        pageNeighbours:number,
+        onPageChanged:any,
+        currentPage:number}) => { 
     const {
         totalRecords,
         pageLimit,

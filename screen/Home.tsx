@@ -3,20 +3,20 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import fetchPollingData from '../api/fetchData';
 import Paginations from '../components/Paginations';
+import { TableDataLabel } from '../components/TableDataLabel';
+import { createShortString, parseDateStamp } from '../api/helperMethods'
 
-export const Home = ({ navigation }) => {
+export const Home = ({ navigation }: { navigation: any }) => {
     const [data, setData] = useState<object[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const PAGELIMIT = 20
-    let counter = 0 
+    let counter = 0
 
     useEffect(() => {
-
         // will run once on mount
         apiCall(counter);
 
-        // after 10 seconds 
+        // after every 10 seconds 
         const interval = setInterval(() => {
             apiCall(counter);
         }, 10000);
@@ -25,23 +25,17 @@ export const Home = ({ navigation }) => {
     }, [])
 
     const apiCall = (page: number) => {
-        
         fetchPollingData(page)
-        .then(res => {
-            console.log("fetched with", page, counter);
-            
-            setIsLoading(true);
-            counter++;
-            return res.hits;
-        })
-        .then(body => {
-            setData(prevState => [...prevState, ...body])
-            setIsLoading(false)
-        })
-        .catch(error => console.log(error))
+            .then(res => {
+                // console.log("fetched with", page, counter);
+                counter++;
+                return res.hits;
+            })
+            .then(body => setData(prevState => [...prevState, ...body]))
+            .catch(error => console.log(error))
     }
 
-    const onPageChanged = useCallback((e, page) => {
+    const onPageChanged = useCallback((e: ProgressEvent, page: any) => {
         e.preventDefault();
         setCurrentPage(page);
     }, [currentPage]);
@@ -51,25 +45,10 @@ export const Home = ({ navigation }) => {
         (currentPage - 1) * PAGELIMIT + PAGELIMIT
     );
 
-    const createShortString = (str: string) => {
-        if (str != undefined) {
-            return str.length < 5 ? str : str.substring(0, 20) + '...'
-        }
-    }
-
-    const parseDateStamp = (created_at: string) => {
-        const dateOptions: any = { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' };
-        const myDate = new Date(created_at);
-
-        return myDate.toLocaleDateString('en-US', dateOptions);
-    }
-    const OnRowClickHandler = (item) => {
-        navigation.navigate('Detail', { item })
-    }
-
-    const renderItem = ({ item }) => {
+    const renderItem = ({ item }: any) => {
         const { title, url, created_at, author } = item
 
+        // Creating short name insted of long strings and showing direct link
         const newShortTitle = createShortString(title)
         const urlDomain = url?.split('/')[2];
         const newShorAuther = createShortString(author)
@@ -77,7 +56,7 @@ export const Home = ({ navigation }) => {
         const newCreatedAt = parseDateStamp(created_at);
 
         return (
-            <TouchableOpacity style={styles.tableContent} onPress={() => OnRowClickHandler(item)}>
+            <TouchableOpacity style={styles.tableContent} onPress={() => navigation.navigate('Detail', { item })}>
                 <View style={[styles.tableCol, styles.tableFirstCol]}>
                     <Text>{newShortTitle}</Text>
                 </View>
@@ -97,57 +76,35 @@ export const Home = ({ navigation }) => {
             </TouchableOpacity>
         )
     }
-    const RenderData = ({ data }) => {
-        if (isLoading) {
-            return (
-                <Text style={{ marginTop: 300 }}>Loading...</Text>
-            )
-        } else {
-            return (
-                <FlatList
-                    nestedScrollEnabled
-                    data={currentData}
-                    renderItem={renderItem}
-                    ListFooterComponent={
-                        <Paginations
-                            totalRecords={data.length}
-                            pageLimit={PAGELIMIT}
-                            pageNeighbours={2}
-                            onPageChanged={onPageChanged}
-                            currentPage={currentPage} />
-                    }
-                    keyExtractor={(item, index) => index.toString()} />
-            )
-        }
-    }
-    const TableDataLabel = ({ tabelHeadings }: { tabelHeadings: { title: string, url: string, createdAt: string, author: string } }) => {
-
-        const { title, url, createdAt, author } = tabelHeadings
-
+    const RenderData = ({ data }: any) => {
         return (
-            <View style={styles.tableHeading}>
-                <View style={[styles.tableCol, styles.tableFirstCol]}>
-                    <Text>{title}</Text>
-                </View>
-                <View style={styles.tableCol}>
-                    <Text style={styles.tableContentLink}>
-                        {url}
-                    </Text>
-                </View>
-                <View style={[styles.tableCol, { alignItems: 'center' }]}>
-                    <Text>{createdAt}</Text>
-                </View>
-                <View style={[styles.tableCol, styles.tableLastCol]}>
-                    <Text>{author}</Text>
-                </View>
-            </View>
+            <FlatList
+                nestedScrollEnabled
+                data={currentData}
+                renderItem={renderItem}
+                ListFooterComponent={
+                    <Paginations
+                        totalRecords={data.length}
+                        pageLimit={PAGELIMIT}
+                        pageNeighbours={2}
+                        onPageChanged={onPageChanged}
+                        currentPage={currentPage} />
+                }
+                keyExtractor={(item, index) => index.toString()} />
         )
     }
 
     return (
         <View style={styles.tableContainer}>
 
-            <TableDataLabel tabelHeadings={{ title: "Title", url: "Url", createdAt: "Created At", author: "Author" }} />
+            <TableDataLabel
+                tabelHeadings={{
+                    title: "Title",
+                    url: "Url",
+                    createdAt: "Created At",
+                    author: "Author"
+                }} />
+
             <RenderData data={data} />
 
             <StatusBar style="auto" hidden />
@@ -157,12 +114,8 @@ export const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
     tableContainer: {
         flex: 1,
+        marginTop: 50,
         alignItems: 'center',
-    },
-    tableHeading: {
-        flexDirection: 'row',
-        borderBottomWidth: 2,
-        borderBottomColor: '#021847',
     },
     tableContent: {
         flexDirection: 'row',
@@ -170,10 +123,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#f3f3f3',
         borderBottomColor: 'black',
         borderBottomWidth: 2,
-    },
-    loadingStyle: {
-        marginTop: 300,
-        fontSize: 30
     },
     tableContentLink: {
         color: 'blue',
