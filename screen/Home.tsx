@@ -8,11 +8,12 @@ import { createShortString, parseDateStamp } from '../api/helperMethods'
 
 export const Home = ({ navigation }: { navigation: any }) => {
     const [data, setData] = useState<object[]>([]);
+    
     const [currentPage, setCurrentPage] = useState<number>(1);
     const PAGELIMIT = 20
     let counter = 0
 
-    useEffect(() => {
+    useEffect(() => {        
         // will run once on mount
         apiCall(counter);
 
